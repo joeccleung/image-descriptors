@@ -136,7 +136,7 @@ void CommandSIFTMatching()
     Ptr<FlannBasedMatcher> matcher = FlannBasedMatcher::create();
     for (int p = 0; p < numberOfPatches - 1; p++)
     {
-        for (int w = p+1; w < numberOfPatches; w++)
+        for (int w = p + 1; w < numberOfPatches; w++)
         {
             matcher->match(patches[p].descriptor, patches[w].descriptor, matches);
 
