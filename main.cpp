@@ -13,6 +13,7 @@ using namespace cv;
 const int COMMAND_EXIT = 0;
 const int COMMAND_EXTRACT_IMAGE_PATCHES_FROM_DATASET = 1;
 const int COMMAND_SIFT_MATCHING = 2;
+const int COMMAND_NSSD_MATCHING = 3;
 
 struct ImagePatch_t
 {
@@ -29,6 +30,7 @@ int ShowMainMenu()
     cout << "(0) Exit program;" << endl;
     cout << "(1) Extract image patches from dataset;" << endl;
     cout << "(2) SIFT Matching" << endl;
+    cout << "(3) SSD Matching" << endl;
     cout << endl;
     cout << "Please select a command: ";
     cin >> command;
@@ -148,8 +150,52 @@ void CommandSIFTMatching()
 
             double average = total / matches.size();
 
-            cout << average << endl;
-            // cout << "Distance between " << p << " and " << w << " = " << average << endl;
+            // cout << average << endl;
+            cout << "Distance between " << p << " and " << w << " = " << average << endl;
+        }
+    }
+}
+
+void CommandNSSDMatching(int patchSize)
+{
+    int numberOfPatches = 0;
+
+    while (numberOfPatches < 2)
+    {
+        cout << "How many patches to match? " << endl;
+        cin >> numberOfPatches;
+
+        if (numberOfPatches < 2)
+        {
+            cout << "Number of patches to match must be greater than or equal to 2" << endl;
+        }
+    }
+
+    vector<ImagePatch_t> patches;
+
+    for (int i = 0; i < numberOfPatches; i++)
+    {
+        ImagePatch_t patchData;
+        patchData.patch = imread(to_string(i) + ".png");
+        patches.push_back(patchData);
+    }
+
+    // Calculate SSD between patch a and patch b (=a+1)
+    for (int a = 0; a < patches.size() - 1; a++)
+    {
+        for (int b = a + 1; b < patches.size(); b++)
+        {
+            int ssd = 0;
+            for (int r = 0; r < patchSize; r++)
+            {
+                for (int c = 0; c < patchSize; c++)
+                {
+                    int diff = patches[a].patch.at<Vec3b>(r, c)[0] - patches[b].patch.at<Vec3b>(r, c)[0];   // Since we are using greyscale image, we only need to compute one color channel
+                    ssd += diff * diff;
+                }
+            }
+
+            cout << "SSD between " << a << " and " << b << " = " << ssd << endl;
         }
     }
 }
@@ -175,6 +221,10 @@ int main(int argc, char *argv[])
 
         case COMMAND_SIFT_MATCHING:
             CommandSIFTMatching();
+            break;
+
+        case COMMAND_NSSD_MATCHING:
+            CommandNSSDMatching(PATCH_SIZE);
             break;
         }
     }
