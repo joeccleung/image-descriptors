@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cmath>
 #include <opencv2/core.hpp>
@@ -40,46 +41,54 @@ int ShowMainMenu()
 
 void CommandExtractImagePatchesFromDataset(int patchSize)
 {
-    string pathToImages;
-
-    cout << "Please provide path to images for patches extraction" << endl;
-    cin >> pathToImages;
-
-    Mat source = imread(pathToImages);
-
-    int patchRow = source.rows / patchSize;
-    int patchCol = source.cols / patchSize;
+    int indexOfLastPatch = 0;
+    cout << "Please provide the last index of patches to extract (source/patchesXXXX.bmp):";
+    cin >> indexOfLastPatch;
 
     int fileNameCounter = 0;
 
-    cout << "Number of patches " << patchRow << " x " << patchCol << " = " << patchRow * patchCol << endl;
-
-    for (int y = 0; y < patchRow; y++)
+    stringstream ss;
+    stringstream outputSS;
+    for (int i = 0; i <= indexOfLastPatch; i++)
     {
-        int startRow = y * patchSize;
+        ss.clear();
+        ss << "source/patches" << setfill('0') << setw(4) << indexOfLastPatch << ".bmp";
 
-        for (int x = 0; x < patchCol; x++)
+        Mat source = imread(ss.str());
+
+        int patchRow = source.rows / patchSize;
+        int patchCol = source.cols / patchSize;
+
+        cout << "Reading patches:" << endl;
+        cout << ss.str() << endl;
+
+        for (int y = 0; y < patchRow; y++)
         {
-            int startCol = x * patchSize;
+            int startRow = y * patchSize;
 
-            Mat patch(cv::Size(patchSize, patchSize), CV_8UC3);
-
-            for (int r = 0; r < patchSize; r++)
+            for (int x = 0; x < patchCol; x++)
             {
-                for (int c = 0; c < patchSize; c++)
-                {
-                    patch.at<Vec3b>(r, c) = source.at<Vec3b>(startRow + r, startCol + c);
-                }
-            }
+                int startCol = x * patchSize;
 
-            imwrite(to_string(fileNameCounter) + ".png", patch);
-            fileNameCounter++;
-            cout << "Extracted " << fileNameCounter << endl;
+                Mat patch(cv::Size(patchSize, patchSize), CV_8UC3);
+
+                for (int r = 0; r < patchSize; r++)
+                {
+                    for (int c = 0; c < patchSize; c++)
+                    {
+                        patch.at<Vec3b>(r, c) = source.at<Vec3b>(startRow + r, startCol + c);
+                    }
+                }
+
+                outputSS.clear();
+                outputSS << "patch/" << fileNameCounter << ".png";
+                imwrite(outputSS.str(), patch);
+                fileNameCounter++;
+            }
         }
     }
 
-    namedWindow("Test");
-    imshow("Test", source);
+    cout << "Generated " << fileNameCounter << " of image patches" << endl;
 
     cout << "Close the window to continue" << endl;
 
@@ -190,7 +199,7 @@ void CommandNSSDMatching(int patchSize)
             {
                 for (int c = 0; c < patchSize; c++)
                 {
-                    int diff = patches[a].patch.at<Vec3b>(r, c)[0] - patches[b].patch.at<Vec3b>(r, c)[0];   // Since we are using greyscale image, we only need to compute one color channel
+                    int diff = patches[a].patch.at<Vec3b>(r, c)[0] - patches[b].patch.at<Vec3b>(r, c)[0]; // Since we are using greyscale image, we only need to compute one color channel
                     ssd += diff * diff;
                 }
             }
