@@ -17,6 +17,11 @@ const int COMMAND_SIFT_MATCHING = 2;
 const int COMMAND_NSSD_MATCHING = 3;
 const int COMMAND_T2A_S1_MATCHING = 4;
 
+const int T2_VF_P_X = 0;
+const int T2_VF_N_X = 1;
+const int T2_VF_P_Y = 2;
+const int T2_VF_N_Y = 3;
+
 struct ImagePatch_t
 {
     Mat patch;
@@ -246,10 +251,69 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
 
         Mat img;
         img = imread(inputFileName.str());
-        Mat vectorField(img.cols, img.rows, CV_64F, Scalar(0));
+        Mat vectorField(img.cols, img.rows, CV_16SC4, Vec4s(0, 0, 0, 0)); // Create Float64 4 channels for rectified gradient vectors
 
-        // Horizontal Kernel
-        fs << "M" + to_string(i) << vectorField;
+        short value = 0;
+        // Horizontal Kernel [-1|0|1]
+        for (int r = 0; r < img.rows; r++)
+        {
+            // First column
+            // We clamp the L.H.S pixel with the center pixel
+            value = -1 * img.at<Vec3b>(r, 0)[0]; // Input is grayscale, RGB channels are the same
+            value += img.at<Vec3b>(r, 1)[0];
+
+            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = (value > 0) ? value : 0;
+            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+
+            for (int c = 1; c < img.cols - 1; c++)
+            {
+                value = -1 * img.at<Vec3b>(r, c - 1)[0];
+                value += img.at<Vec3b>(r, c + 1)[0];
+
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = (value > 0) ? value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+            }
+
+            // Last column
+            // We clamp the R.H.S pixel with the center pixel
+            value = -1 * img.at<Vec3b>(r, img.cols - 2)[0]; // Input is grayscale, RGB channels are the same
+            value += img.at<Vec3b>(r, img.cols - 1)[0];
+
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = (value > 0) ? value : 0;
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+        }
+
+        // Vectical Kernel [-1|0|1]
+        for (int c = 0; c < img.cols; c++)
+        {
+            // First row
+            // We clamp the top pixel with the center pixel
+            value = -1 * img.at<Vec3b>(0, c)[0]; // Input is grayscale, RGB channels are the same
+            value += img.at<Vec3b>(1, c)[0];
+
+            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
+            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+
+            for (int r = 1; r < img.rows - 1; r++)
+            {
+                value = -1 * img.at<Vec3b>(r - 1, c)[0];
+                value += img.at<Vec3b>(r + 1, c)[0];
+
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+            }
+
+            // Last row
+            // We clamp the bottom pixel with the center pixel
+            value = -1 * img.at<Vec3b>(img.rows - 2, c)[0]; // Input is grayscale, RGB channels are the same
+            value += img.at<Vec3b>(img.rows - 1, c)[0];
+
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+        }
+
+        // Vector field output
+        fs << "T" + to_string(i) << vectorField; // Matrix name must be prefix with non-numberic characters
 
         cout << "Processed " << inputFileName.str() << endl;
     }
