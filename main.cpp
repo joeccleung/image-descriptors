@@ -235,6 +235,8 @@ int ShowT2AS1Menu()
 void CommandT2AS1GenerateDescriptorsFromPatches()
 {
     int numberOfPatches = -1;
+    char printDebugCommand = ' ';
+    bool debug = false;
 
     while (numberOfPatches < 0)
     {
@@ -242,8 +244,16 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
         cin >> numberOfPatches;
     }
 
+    while (printDebugCommand == ' ')
+    {
+        cout << "Do you want intermediate output for debug? (y/n):";
+        cin >> printDebugCommand;
+    }
+
+    debug = (printDebugCommand == 'y' || printDebugCommand == 'Y');
+
     // Output descriptors to file as XML
-    cv::FileStorage fs("T2AS1.xml", FileStorage::WRITE);
+    cv::FileStorage debugFS("T2AS1_Debug.xml", FileStorage::WRITE);
 
     stringstream inputFileName;
     for (int i = 0; i <= numberOfPatches; i++)
@@ -315,9 +325,12 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
         }
 
         // Vector field output
-        fs << "T" + to_string(i) << vectorField; // Matrix name must be prefix with non-numberic characters
+        if (debug)
+        {
+            debugFS << "T" + to_string(i) << vectorField; // Matrix name must be prefix with non-numberic characters
+        }
 
-        // Binning        
+        // Binning
         Mat bins(T2_Bin_Count_Each_Side, T2_Bin_Count_Each_Side, CV_64FC4, Vec4d(0, 0, 0, 0));
 
         // Bilinear weighting
@@ -341,12 +354,15 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
             }
         }
 
-        fs << "S" + to_string(i) << bins;
+        if (debug)
+        {
+            debugFS << "S" + to_string(i) << bins;
+        }
 
         cout << "Processed " << inputFileName.str() << endl;
     }
 
-    fs.release();
+    debugFS.release();
 }
 
 void CommandT2AS1()
