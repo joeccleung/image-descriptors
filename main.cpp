@@ -253,6 +253,7 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
     debug = (printDebugCommand == 'y' || printDebugCommand == 'Y');
 
     // Output descriptors to file as XML
+    cv::FileStorage outFS("T2AS1.xml", FileStorage::WRITE);
     cv::FileStorage debugFS("T2AS1_Debug.xml", FileStorage::WRITE);
 
     stringstream inputFileName;
@@ -359,9 +360,13 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
             debugFS << "S" + to_string(i) << bins;
         }
 
+        // Flatten the bins into 64 length descriptor
+        outFS << "T2S1_" + to_string(i) << bins.reshape(1, 1);
+
         cout << "Processed " << inputFileName.str() << endl;
     }
 
+    outFS.release();
     debugFS.release();
 }
 
