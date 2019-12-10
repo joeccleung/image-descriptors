@@ -21,6 +21,8 @@ const int T2_VF_P_X = 0;
 const int T2_VF_N_X = 1;
 const int T2_VF_P_Y = 2;
 const int T2_VF_N_Y = 3;
+const int T2_Bin_Length = 16;         // 16px x 16px in each bin
+const int T2_Bin_Count_Each_Side = 4; // 16 bins per patch
 
 struct ImagePatch_t
 {
@@ -314,6 +316,32 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
 
         // Vector field output
         fs << "T" + to_string(i) << vectorField; // Matrix name must be prefix with non-numberic characters
+
+        // Binning        
+        Mat bins(T2_Bin_Count_Each_Side, T2_Bin_Count_Each_Side, CV_64FC4, Vec4d(0, 0, 0, 0));
+
+        // Bilinear weighting
+        Mat bilinear = (Mat_<double>(4, 4) << 0.015625, 0.046875, 0.046875, 0.015625, 0.046875, 0.1406, 0.1406, 0.046875, 0.046875, 0.1406, 0.1406, 0.046875, 0.015625, 0.046875, 0.046875, 0.015625);
+
+        for (int y = 0; y < T2_Bin_Count_Each_Side; y++)
+        {
+            for (int x = 0; x < T2_Bin_Count_Each_Side; x++)
+            {
+                Vec4d total(0, 0, 0, 0);
+                for (int r = 0; r < T2_Bin_Length; r++)
+                {
+                    for (int c = 0; c < T2_Bin_Length; c++)
+                    {
+                        total += vectorField.at<Vec4s>(y * T2_Bin_Length + r, x * T2_Bin_Length + c);
+                    }
+                }
+
+                bins.at<Vec4d>(y, x) = total * bilinear.at<double>(y, x);
+                cout << y << " " << x << " " << total << " " << bilinear.at<double>(y, x) << " " << (total * bilinear.at<double>(y, x)) << endl;
+            }
+        }
+
+        fs << "S" + to_string(i) << bins;
 
         cout << "Processed " << inputFileName.str() << endl;
     }
