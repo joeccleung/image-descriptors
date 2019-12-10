@@ -370,6 +370,30 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
     debugFS.release();
 }
 
+void CommandT2AS1GenerateDescriptorsFromImage()
+{
+    string path("");
+
+    while (path.length() == 0)
+    {
+        cout << "Please provide path to image:";
+        cin >> path;
+    }
+
+    Mat img = imread(path);
+    if (img.data == NULL)
+    {
+        cout << "Fail to open file " << path << endl;
+        return;
+    }
+
+    GaussianBlur(img, img, Size(7, 7), 2.7);
+
+    imshow("Test", img);
+
+    waitKey(0);
+}
+
 void CommandT2AS1()
 {
     int command = -1;
@@ -388,7 +412,7 @@ void CommandT2AS1()
             break;
 
         case 2:
-
+            CommandT2AS1GenerateDescriptorsFromImage();
             break;
 
         default:
