@@ -387,11 +387,27 @@ void CommandT2AS1GenerateDescriptorsFromImage()
         return;
     }
 
+    // Stage 1: Pre-smoothing
     GaussianBlur(img, img, Size(7, 7), 2.7);
 
-    imshow("Test", img);
+    // Stage 2: SIFT keypoints detection
+    Ptr<xfeatures2d::SIFT> SIFT = xfeatures2d::SIFT::create(100);
+    vector<KeyPoint> SIFTKeypoints;
+    SIFT->detect(img, SIFTKeypoints, noArray());
+    cout << "Number of SIFT keypoints " << SIFTKeypoints.size() << endl;
 
-    waitKey(0);
+    // Stage 3: Select the SIFT keypoints that can form 64x64 patch
+    for(int i = 0; i < SIFTKeypoints.size(); i++) 
+    {
+        if (SIFTKeypoints[i].pt.x < 31 || SIFTKeypoints[i].pt.x >= img.cols-31) {
+            continue;
+        }
+
+        if (SIFTKeypoints[i].pt.y < 31 || SIFTKeypoints[i].pt.y >= img.rows-31) {
+            continue;
+        }
+    }
+}
 }
 
 void CommandT2AS1()
