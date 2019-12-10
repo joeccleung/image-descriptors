@@ -15,6 +15,7 @@ const int COMMAND_EXIT = 0;
 const int COMMAND_EXTRACT_IMAGE_PATCHES_FROM_DATASET = 1;
 const int COMMAND_SIFT_MATCHING = 2;
 const int COMMAND_NSSD_MATCHING = 3;
+const int COMMAND_T2A_S1_MATCHING = 4;
 
 struct ImagePatch_t
 {
@@ -30,8 +31,9 @@ int ShowMainMenu()
     cout << "========== Main Menu ==========" << endl;
     cout << "(0) Exit program;" << endl;
     cout << "(1) Extract image patches from dataset;" << endl;
-    cout << "(2) SIFT Matching" << endl;
-    cout << "(3) SSD Matching" << endl;
+    cout << "(2) SIFT" << endl;
+    cout << "(3) NSSD" << endl;
+    cout << "(4) T2a-S1" << endl;
     cout << endl;
     cout << "Please select a command: ";
     cin >> command;
@@ -208,6 +210,81 @@ void CommandNSSDMatching(int patchSize)
     }
 }
 
+int ShowT2AS1Menu()
+{
+    int command = -1;
+
+    cout << "========== T2A + S1 Menu ==========" << endl;
+    cout << "(0) Return to main menu;" << endl;
+    cout << "(1) Generate descriptors from image patches;" << endl;
+    cout << "(2) Generate descriptors from image" << endl;
+    cout << endl;
+    cout << "Please select a command: ";
+    cin >> command;
+
+    return command;
+}
+
+void CommandT2AS1GenerateDescriptorsFromPatches()
+{
+    int numberOfPatches = -1;
+
+    while (numberOfPatches < 0)
+    {
+        cout << "Please specify the last index of the patches: ";
+        cin >> numberOfPatches;
+    }
+
+    // Output descriptors to file as XML
+    cv::FileStorage fs("T2AS1.xml", FileStorage::WRITE);
+
+    stringstream inputFileName;
+    for (int i = 0; i <= numberOfPatches; i++)
+    {
+        stringstream().swap(inputFileName);
+        inputFileName << "patch/" << setfill('0') << setw(4) << i << ".png";
+
+        Mat img;
+        img = imread(inputFileName.str());
+        Mat vectorField(img.cols, img.rows, CV_64F, Scalar(0));
+
+        // Horizontal Kernel
+        fs << "M" + to_string(i) << vectorField;
+
+        cout << "Processed " << inputFileName.str() << endl;
+    }
+
+    fs.release();
+}
+
+void CommandT2AS1()
+{
+    int command = -1;
+
+    while (command != 0)
+    {
+        command = ShowT2AS1Menu();
+
+        switch (command)
+        {
+        case 0:
+            return;
+
+        case 1:
+            CommandT2AS1GenerateDescriptorsFromPatches();
+            break;
+
+        case 2:
+
+            break;
+
+        default:
+            cout << "Unknown command " << command << endl;
+            break;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     const int PATCH_SIZE = 64;
@@ -233,6 +310,10 @@ int main(int argc, char *argv[])
 
         case COMMAND_NSSD_MATCHING:
             CommandNSSDMatching(PATCH_SIZE);
+            break;
+
+        case COMMAND_T2A_S1_MATCHING:
+            CommandT2AS1();
             break;
         }
     }
