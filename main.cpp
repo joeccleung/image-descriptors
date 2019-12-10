@@ -51,7 +51,7 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
     stringstream outputSS;
     for (int i = 0; i <= indexOfLastPatch; i++)
     {
-        ss.clear();
+        stringstream().swap(ss);
         ss << "source/patches" << setfill('0') << setw(4) << indexOfLastPatch << ".bmp";
 
         Mat source = imread(ss.str());
@@ -59,8 +59,7 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
         int patchRow = source.rows / patchSize;
         int patchCol = source.cols / patchSize;
 
-        cout << "Reading patches:" << endl;
-        cout << ss.str() << endl;
+        cout << "Reading patches:" << ss.str() << endl;
 
         for (int y = 0; y < patchRow; y++)
         {
@@ -80,8 +79,8 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
                     }
                 }
 
-                outputSS.clear();
-                outputSS << "patch/" << fileNameCounter << ".png";
+                stringstream().swap(outputSS);
+                outputSS << "patch/" << setfill('0') << setw(4) << fileNameCounter << ".png";
                 imwrite(outputSS.str(), patch);
                 fileNameCounter++;
             }
