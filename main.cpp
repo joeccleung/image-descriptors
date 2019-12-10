@@ -11,6 +11,8 @@
 using namespace std;
 using namespace cv;
 
+const int NUMBER_OF_PATCH_PER_IMAGE = 256;
+
 const int COMMAND_EXIT = 0;
 const int COMMAND_EXTRACT_IMAGE_PATCHES_FROM_DATASET = 1;
 const int COMMAND_SIFT_MATCHING = 2;
@@ -50,18 +52,21 @@ int ShowMainMenu()
 
 void CommandExtractImagePatchesFromDataset(int patchSize)
 {
+    int indexOfFirstPatch = 0;
+    cout << "Please provide the first index of patches to extract (source/patchesXXXX.bmp):";
+    cin >> indexOfFirstPatch;
     int indexOfLastPatch = 0;
     cout << "Please provide the last index of patches to extract (source/patchesXXXX.bmp):";
     cin >> indexOfLastPatch;
 
-    int fileNameCounter = 0;
+    int fileNameCounter = indexOfFirstPatch * NUMBER_OF_PATCH_PER_IMAGE;
 
     stringstream ss;
     stringstream outputSS;
-    for (int i = 0; i <= indexOfLastPatch; i++)
+    for (int i = indexOfFirstPatch; i <= indexOfLastPatch; i++)
     {
         stringstream().swap(ss);
-        ss << "source/patches" << setfill('0') << setw(4) << indexOfLastPatch << ".bmp";
+        ss << "source/patches" << setfill('0') << setw(4) << i << ".bmp";
 
         Mat source = imread(ss.str());
 
@@ -96,11 +101,8 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
         }
     }
 
-    cout << "Generated " << fileNameCounter << " of image patches" << endl;
-
-    cout << "Close the window to continue" << endl;
-
-    waitKey(0);
+    cout << "Generated " << fileNameCounter - indexOfFirstPatch * NUMBER_OF_PATCH_PER_IMAGE << " of image patches" << endl;
+    cout << endl;
 }
 
 void CommandSIFTMatching()
