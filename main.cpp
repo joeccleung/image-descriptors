@@ -370,6 +370,46 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
     debugFS.release();
 }
 
+void CommandT2AS1GenerateDescriptorsFromImage()
+{
+    string path("");
+
+    while (path.length() == 0)
+    {
+        cout << "Please provide path to image:";
+        cin >> path;
+    }
+
+    Mat img = imread(path);
+    if (img.data == NULL)
+    {
+        cout << "Fail to open file " << path << endl;
+        return;
+    }
+
+    // Stage 1: Pre-smoothing
+    GaussianBlur(img, img, Size(7, 7), 2.7);
+
+    // Stage 2: SIFT keypoints detection
+    Ptr<xfeatures2d::SIFT> SIFT = xfeatures2d::SIFT::create(100);
+    vector<KeyPoint> SIFTKeypoints;
+    SIFT->detect(img, SIFTKeypoints, noArray());
+    cout << "Number of SIFT keypoints " << SIFTKeypoints.size() << endl;
+
+    // Stage 3: Select the SIFT keypoints that can form 64x64 patch
+    for(int i = 0; i < SIFTKeypoints.size(); i++) 
+    {
+        if (SIFTKeypoints[i].pt.x < 31 || SIFTKeypoints[i].pt.x >= img.cols-31) {
+            continue;
+        }
+
+        if (SIFTKeypoints[i].pt.y < 31 || SIFTKeypoints[i].pt.y >= img.rows-31) {
+            continue;
+        }
+    }
+}
+}
+
 void CommandT2AS1()
 {
     int command = -1;
@@ -388,7 +428,7 @@ void CommandT2AS1()
             break;
 
         case 2:
-
+            CommandT2AS1GenerateDescriptorsFromImage();
             break;
 
         default:
