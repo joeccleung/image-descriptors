@@ -460,7 +460,6 @@ void CommandT2AS1CalculateEuclideanDistanceBetweenPatches()
         }
     }
 }
-}
 
 void CommandT2AS1()
 {
