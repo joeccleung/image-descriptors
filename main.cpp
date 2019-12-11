@@ -231,8 +231,8 @@ int ShowT2AS1Menu()
 
     cout << "========== T2A + S1 Menu ==========" << endl;
     cout << "(0) Return to main menu;" << endl;
-    cout << "(1) Generate descriptors from image patches;" << endl;
-    cout << "(2) Generate descriptors from image" << endl;
+    cout << "(1) Generate descriptors from patches;" << endl;
+    cout << "(2) Calculate Euclidean distance between patches;" << endl;
     cout << endl;
     cout << "Please select a command: ";
     cin >> command;
@@ -359,7 +359,6 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
                 }
 
                 bins.at<Vec4d>(y, x) = total * bilinear.at<double>(y, x);
-                cout << y << " " << x << " " << total << " " << bilinear.at<double>(y, x) << " " << (total * bilinear.at<double>(y, x)) << endl;
             }
         }
 
@@ -378,7 +377,52 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
     debugFS.release();
 }
 
-void CommandT2AS1GenerateDescriptorsFromImage()
+/**
+ * @brief This is the sketch goal to classify an image
+ * 
+ */
+// void CommandT2AS1GenerateDescriptorsFromImage()
+// {
+//     string path("");
+
+//     while (path.length() == 0)
+//     {
+//         cout << "Please provide path to image:";
+//         cin >> path;
+//     }
+
+//     Mat img = imread(path);
+//     if (img.data == NULL)
+//     {
+//         cout << "Fail to open file " << path << endl;
+//         return;
+//     }
+
+//     // Stage 1: Pre-smoothing
+//     GaussianBlur(img, img, Size(7, 7), 2.7);
+
+//     // Stage 2: SIFT keypoints detection
+//     Ptr<xfeatures2d::SIFT> SIFT = xfeatures2d::SIFT::create(100);
+//     vector<KeyPoint> SIFTKeypoints;
+//     SIFT->detect(img, SIFTKeypoints, noArray());
+//     cout << "Number of SIFT keypoints " << SIFTKeypoints.size() << endl;
+
+//     // Stage 3: Select the SIFT keypoints that can form 64x64 patch
+//     for (int i = 0; i < SIFTKeypoints.size(); i++)
+//     {
+//         if (SIFTKeypoints[i].pt.x < 31 || SIFTKeypoints[i].pt.x >= img.cols - 31)
+//         {
+//             continue;
+//         }
+
+//         if (SIFTKeypoints[i].pt.y < 31 || SIFTKeypoints[i].pt.y >= img.rows - 31)
+//         {
+//             continue;
+//         }
+//     }
+// }
+
+void CommandT2AS1CalculateEuclideanDistanceBetweenPatches()
 {
     string path("");
 
@@ -416,7 +460,6 @@ void CommandT2AS1GenerateDescriptorsFromImage()
         }
     }
 }
-}
 
 void CommandT2AS1()
 {
@@ -435,8 +478,11 @@ void CommandT2AS1()
             CommandT2AS1GenerateDescriptorsFromPatches();
             break;
 
+        // case 2:
+        //     CommandT2AS1GenerateDescriptorsFromImage();
+        //     break;
         case 2:
-            CommandT2AS1GenerateDescriptorsFromImage();
+            CommandT2AS1CalculateEuclideanDistanceBetweenPatches();
             break;
 
         default:
