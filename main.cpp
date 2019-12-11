@@ -107,116 +107,122 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
 
 void CommandSIFTMatching()
 {
-    int numberOfPatches = 0;
 
-    while (numberOfPatches < 2)
-    {
-        cout << "How many patches to match? " << endl;
-        cin >> numberOfPatches;
-
-        if (numberOfPatches < 2)
-        {
-            cout << "Number of patches to match must be greater than or equal to 2" << endl;
-        }
-    }
-
-    vector<ImagePatch_t> patches;
-
-    for (int i = 0; i < numberOfPatches; i++)
-    {
-        ImagePatch_t patchData;
-        patchData.patch = imread(to_string(i) + ".png");
-        patches.push_back(patchData);
-    }
-
-    Ptr<xfeatures2d::SIFT> SIFT = xfeatures2d::SIFT::create();
-
-    for (int p = 0; p < numberOfPatches; p++)
-    {
-        SIFT->detectAndCompute(patches[p].patch, noArray(), patches[p].keypoints, patches[p].descriptor, false);
-        cout << "SIFT detect and computed " << p << " patch" << endl;
-    }
-
-    // for (int p = 0; p < numberOfPatches - 1; p++)
-    // {
-    //     double total = 0;
-    //     for (int r = 0; r < patches[p].descriptor.rows; r++)
-    //     {
-    //         for (int k = 0; k < patches[p + 1].descriptor.rows; k++)
-    //         {
-    //             total += sqrt(patches[p].descriptor.row(r).dot(patches[p + 1].descriptor.row(k)));
-    //         }
-    //     }
-
-    //     double average = total / (patches[p].descriptor.rows * patches[p + 1].descriptor.rows);
-
-    //     cout << "Distance between " << p << " and " << (p+1) << " is " << average << endl;
-    // }
-
-    vector<DMatch> matches;
-    Ptr<FlannBasedMatcher> matcher = FlannBasedMatcher::create();
-    for (int p = 0; p < numberOfPatches - 1; p++)
-    {
-        for (int w = p + 1; w < numberOfPatches; w++)
-        {
-            matcher->match(patches[p].descriptor, patches[w].descriptor, matches);
-
-            double total = 0;
-            for (int m = 0; m < matches.size(); m++)
-            {
-                total += matches[m].distance;
-            }
-
-            double average = total / matches.size();
-
-            // cout << average << endl;
-            cout << "Distance between " << p << " and " << w << " = " << average << endl;
-        }
-    }
 }
 
 void CommandNSSDMatching(int patchSize)
 {
+    int starting = -1;
+    int ending = -1;
     int numberOfPatches = 0;
 
-    while (numberOfPatches < 2)
+    while (starting < 0)
     {
-        cout << "How many patches to match? " << endl;
-        cin >> numberOfPatches;
+        cout << "Please provide the starting patch ";
+        cin >> starting;
+    }
 
-        if (numberOfPatches < 2)
+    while (ending < 0)
+    {
+        cout << "Please provide the ending patch ";
+        cin >> ending;
+    }
+
+    FileStorage debugFile = FileStorage("NSSD_Debug.xml", FileStorage::WRITE);
+
+    stringstream inputFileName;
+    vector<Mat> patches;
+    // Stage 1: Load the patches
+    for (int i = starting; i <= ending; i++)
+    {
+        stringstream().swap(inputFileName);
+        inputFileName << "patch/" << setfill('0') << setw(4) << i << ".png";
+
+        patches.push_back(imread(inputFileName.str()));
+    }
+    cout << "Loaded " << patches.size() << " patches" << endl;
+
+    // TODO: Reduce the channel of the matrix to speed up the process
+
+    vector<Mat> normalized;
+    // Stage 2: Normalization
+    for (int i = 0; i < patches.size(); i++)
+    {
+        debugFile << "Original_" + to_string(i) << patches[i];
+
+        Mat normalizeMat(patches[i].size(), CV_64FC3);
+        normalize(patches[i], normalizeMat, 1, 0, NORM_L2, CV_64FC3);
+        normalized.push_back(normalizeMat);
+
+        debugFile << "Normalize_" + to_string(i) << normalized[i];
+
+        // Stage 3: Threshold to reduce dynamic range of the image
+        min(normalized[i], 0.154, normalized[i]);
+
+        debugFile << "K_" + to_string(i) << normalized[i];
+
+        // Stage 4: Normalization again
+        normalize(normalized[i], normalized[i], 1, NORM_L2);
+
+        debugFile << "N_" + to_string(i) << normalized[i];
+    }
+    cout << "Normalization complete " << endl;
+
+    // Output prep
+    ofstream outputFile;
+    outputFile.open("NSSD_Result.csv");
+
+    // Stage 6: Load Ground Truth
+    ifstream groundTruthFile;
+    groundTruthFile.open("GroundTruth.txt");
+    if (!groundTruthFile.is_open())
+    {
+        groundTruthFile.close();
+        cout << "Cannot find GroundTruth.txt" << endl;
+        return;
+    }
+    vector<int> groundTruth;
+    int kpTag;
+    int _3DTag;
+    // Seek to the desired starting location
+    for (int s = 0; s < starting; s++)
+    {
+        groundTruthFile.ignore(numeric_limits<streamsize>::max(), groundTruthFile.widen('\n'));
+    }
+    for (int e = starting; e < ending; e++)
+    {
+        if (groundTruthFile.eof())
         {
-            cout << "Number of patches to match must be greater than or equal to 2" << endl;
+            break;
         }
+        groundTruthFile >> kpTag >> _3DTag;
+        groundTruth.push_back(kpTag);
     }
+    groundTruthFile.close();
+    cout << "Loaded the Ground Truth Table" << endl;
 
-    vector<ImagePatch_t> patches;
-
-    for (int i = 0; i < numberOfPatches; i++)
+    // Stage 5: SSD
+    for (int a = 0; a < normalized.size() - 1; a++)
     {
-        ImagePatch_t patchData;
-        patchData.patch = imread(to_string(i) + ".png");
-        patches.push_back(patchData);
-    }
-
-    // Calculate SSD between patch a and patch b (=a+1)
-    for (int a = 0; a < patches.size() - 1; a++)
-    {
-        for (int b = a + 1; b < patches.size(); b++)
+        for (int b = a + 1; b < normalized.size(); b++)
         {
             int ssd = 0;
             for (int r = 0; r < patchSize; r++)
             {
                 for (int c = 0; c < patchSize; c++)
                 {
-                    int diff = patches[a].patch.at<Vec3b>(r, c)[0] - patches[b].patch.at<Vec3b>(r, c)[0]; // Since we are using greyscale image, we only need to compute one color channel
+                    int diff = normalized[a].at<Vec3b>(r, c)[0] - normalized[b].at<Vec3b>(r, c)[0]; // Since we are using greyscale image, we only need to compute one color channel
                     ssd += diff * diff;
                 }
             }
 
-            cout << "SSD between " << a << " and " << b << " = " << ssd << endl;
+            outputFile << a + starting << "," << b + starting << "," << (groundTruth[a] == groundTruth[b]) << "," << ssd << endl;
+            cout << "SSD between " << a + starting << " and " << b + starting << " = " << ssd << endl;
         }
     }
+
+    outputFile.close();
+    debugFile.release();
 }
 
 int ShowT2AS1Menu()
