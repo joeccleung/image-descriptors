@@ -240,7 +240,13 @@ int ShowT2AS1Menu()
     return command;
 }
 
-void CommandT2AS1GenerateDescriptorsFromPatches()
+/**
+ * @brief Perform T2-S1 Descriptor Generation on selected patches
+ * 
+ * @param postNormalize To control whether the descriptors will perform post normalization to reduce the dynamic range
+ * @param threshold If perform post normalization, set the maximum value for each fields on the descriptors. Range is [0..1]. Default is 1.
+ */
+void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double threshold = 1)
 {
     int numberOfPatches = -1;
     char printDebugCommand = ' ';
@@ -475,7 +481,7 @@ void CommandT2AS1()
             return;
 
         case 1:
-            CommandT2AS1GenerateDescriptorsFromPatches();
+            CommandT2AS1GenerateDescriptorsFromPatches(true, 0.154);
             break;
 
         // case 2:
