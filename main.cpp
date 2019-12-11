@@ -296,16 +296,16 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(r, 0)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(r, 1)[0];
 
-            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = abs(value) + value;
+            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = abs(value) - value;
 
             for (int c = 1; c < img.cols - 1; c++)
             {
                 value = -1 * img.at<Vec3b>(r, c - 1)[0];
                 value += img.at<Vec3b>(r, c + 1)[0];
 
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = (value > 0) ? value : 0;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = abs(value) + value;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = abs(value) - value;
             }
 
             // Last column
@@ -313,8 +313,8 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(r, img.cols - 2)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(r, img.cols - 1)[0];
 
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = abs(value) + value;
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = abs(value) - value;
         }
 
         // Vectical Kernel [-1|0|1]
@@ -325,16 +325,16 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(0, c)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(1, c)[0];
 
-            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = abs(value) + value;
+            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = abs(value) - value;
 
             for (int r = 1; r < img.rows - 1; r++)
             {
                 value = -1 * img.at<Vec3b>(r - 1, c)[0];
                 value += img.at<Vec3b>(r + 1, c)[0];
 
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = abs(value) + value;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = abs(value) - value;
             }
 
             // Last row
@@ -342,8 +342,8 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(img.rows - 2, c)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(img.rows - 1, c)[0];
 
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = abs(value) + value;
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = abs(value) - value;
         }
 
         // Vector field output
