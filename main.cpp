@@ -249,6 +249,7 @@ int ShowT2AS1Menu()
 void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double threshold = 1)
 {
     int numberOfPatches = -1;
+    char shouldNormalizeCommand = ' ';
     char printDebugCommand = ' ';
     bool debug = false;
 
@@ -258,12 +259,18 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
         cin >> numberOfPatches;
     }
 
+    while (shouldNormalizeCommand == ' ') {
+        cout << "Should I normalize the descriptor? (y/n): ";
+        cin >> shouldNormalizeCommand;
+    }
+
     while (printDebugCommand == ' ')
     {
         cout << "Do you want intermediate output for debug? (y/n):";
         cin >> printDebugCommand;
     }
 
+    postNormalize = (shouldNormalizeCommand == 'y' || shouldNormalizeCommand == 'Y');
     debug = (printDebugCommand == 'y' || printDebugCommand == 'Y');
 
     // Output descriptors to file as XML
@@ -368,13 +375,39 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             }
         }
 
+        // Flatten the bins into 64 length descriptor
+        bins = bins.reshape(1, 1);
+
         if (debug)
         {
             debugFS << "S" + to_string(i) << bins;
         }
 
-        // Flatten the bins into 64 length descriptor
-        outFS << "T2S1_" + to_string(i) << bins.reshape(1, 1);
+        // Post Normalization
+        if (postNormalize)
+        {
+            // Convert to unit vector
+            normalize(bins, bins, 1, NORM_L2);
+
+            if (debug)
+            {
+                debugFS << "U" + to_string(i) << bins;
+            }
+
+            // Threshold
+            min(bins, threshold, bins);
+
+            if (debug)
+            {
+                debugFS << "K" + to_string(i) << bins;
+            }
+
+            // Convert to unit vector again
+            normalize(bins, bins, 1, NORM_L2);
+        }
+
+        // Output
+        outFS << "T2S1_" + to_string(i) << bins;
 
         cout << "Processed " << inputFileName.str() << endl;
     }
