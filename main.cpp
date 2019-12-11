@@ -359,7 +359,6 @@ void CommandT2AS1GenerateDescriptorsFromPatches()
                 }
 
                 bins.at<Vec4d>(y, x) = total * bilinear.at<double>(y, x);
-                cout << y << " " << x << " " << total << " " << bilinear.at<double>(y, x) << " " << (total * bilinear.at<double>(y, x)) << endl;
             }
         }
 
