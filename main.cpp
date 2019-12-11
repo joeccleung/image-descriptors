@@ -231,8 +231,8 @@ int ShowT2AS1Menu()
 
     cout << "========== T2A + S1 Menu ==========" << endl;
     cout << "(0) Return to main menu;" << endl;
-    cout << "(1) Generate descriptors from image patches;" << endl;
-    cout << "(2) Generate descriptors from image" << endl;
+    cout << "(1) Generate descriptors from patches;" << endl;
+    cout << "(2) Calculate Euclidean distance between patches;" << endl;
     cout << endl;
     cout << "Please select a command: ";
     cin >> command;
