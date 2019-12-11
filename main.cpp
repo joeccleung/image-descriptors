@@ -478,8 +478,11 @@ void CommandT2AS1()
             CommandT2AS1GenerateDescriptorsFromPatches();
             break;
 
+        // case 2:
+        //     CommandT2AS1GenerateDescriptorsFromImage();
+        //     break;
         case 2:
-            CommandT2AS1GenerateDescriptorsFromImage();
+            CommandT2AS1CalculateEuclideanDistanceBetweenPatches();
             break;
 
         default:
