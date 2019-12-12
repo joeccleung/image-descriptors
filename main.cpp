@@ -26,13 +26,6 @@ const int T2_VF_N_Y = 3;
 const int T2_Bin_Length = 16;         // 16px x 16px in each bin
 const int T2_Bin_Count_Each_Side = 4; // 16 bins per patch
 
-struct ImagePatch_t
-{
-    Mat patch;
-    vector<KeyPoint> keypoints;
-    Mat descriptor;
-};
-
 int ShowMainMenu()
 {
     int command = -1;
@@ -105,9 +98,33 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
     cout << endl;
 }
 
+int askUserStartingPatch()
+{
+    int starting = -1;
+
+    while (starting < 0)
+    {
+        cout << "Please provide the starting patch index: ";
+        cin >> starting;
+    }
+
+    return starting;
+}
+
+int askUserEndingPatch()
+{
+    int ending = -1;
+
+    while (ending < 0)
+    {
+        cout << "Please provide the ending patch index: ";
+        cin >> ending;
+    }
+
+    return ending;
+}
 void CommandSIFTMatching()
 {
-
 }
 
 void CommandNSSDMatching(int patchSize)
