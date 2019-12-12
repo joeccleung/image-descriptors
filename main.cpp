@@ -296,16 +296,16 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(r, 0)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(r, 1)[0];
 
-            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = abs(value) + value;
+            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = abs(value) - value;
 
             for (int c = 1; c < img.cols - 1; c++)
             {
                 value = -1 * img.at<Vec3b>(r, c - 1)[0];
                 value += img.at<Vec3b>(r, c + 1)[0];
 
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = (value > 0) ? value : 0;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = abs(value) + value;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = abs(value) - value;
             }
 
             // Last column
@@ -313,8 +313,8 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(r, img.cols - 2)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(r, img.cols - 1)[0];
 
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = abs(value) + value;
+            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = abs(value) - value;
         }
 
         // Vectical Kernel [-1|0|1]
@@ -325,16 +325,16 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(0, c)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(1, c)[0];
 
-            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = abs(value) + value;
+            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = abs(value) - value;
 
             for (int r = 1; r < img.rows - 1; r++)
             {
                 value = -1 * img.at<Vec3b>(r - 1, c)[0];
                 value += img.at<Vec3b>(r + 1, c)[0];
 
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = abs(value) + value;
+                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = abs(value) - value;
             }
 
             // Last row
@@ -342,8 +342,8 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
             value = -1 * img.at<Vec3b>(img.rows - 2, c)[0]; // Input is grayscale, RGB channels are the same
             value += img.at<Vec3b>(img.rows - 1, c)[0];
 
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = (value > 0) ? value : 0;
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = (value < 0) ? -1 * value : 0;
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = abs(value) + value;
+            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = abs(value) - value;
         }
 
         // Vector field output
@@ -463,41 +463,88 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
 
 void CommandT2AS1CalculateEuclideanDistanceBetweenPatches()
 {
-    string path("");
+    int start = -1;
+    int end = -1;
 
-    while (path.length() == 0)
+    while (start < 0)
     {
-        cout << "Please provide path to image:";
-        cin >> path;
+        cout << "Please input the starting index of the patches: ";
+        cin >> start;
     }
 
-    Mat img = imread(path);
-    if (img.data == NULL)
+    while (end < 0)
     {
-        cout << "Fail to open file " << path << endl;
+        cout << "Please input the ending index of the patches: ";
+        cin >> end;
+
+        if (start >= end)
+        {
+            cout << "Ending index cannot be smaller than or equal to starting index" << endl;
+            end = -1;
+        }
+    }
+
+    // Load the descriptors from the XML
+    cv::FileStorage desFS = cv::FileStorage("T2AS1.xml", cv::FileStorage::READ);
+    vector<Mat> listOfDescriptors;
+
+    for (int i = start; i <= end; i++)
+    {
+        Mat des;
+        string desName = "T2S1_" + to_string(i);
+        desFS[desName] >> des;
+        listOfDescriptors.push_back(des);
+    }
+    desFS.release();
+
+    // Read the ground truth table
+    ifstream groundTruthFile;
+    groundTruthFile.open("GroundTruth.txt");
+    if (!groundTruthFile.is_open())
+    {
+        groundTruthFile.close();
+        cout << "Cannot find GroundTruth.txt" << endl;
         return;
     }
 
-    // Stage 1: Pre-smoothing
-    GaussianBlur(img, img, Size(7, 7), 2.7);
-
-    // Stage 2: SIFT keypoints detection
-    Ptr<xfeatures2d::SIFT> SIFT = xfeatures2d::SIFT::create(100);
-    vector<KeyPoint> SIFTKeypoints;
-    SIFT->detect(img, SIFTKeypoints, noArray());
-    cout << "Number of SIFT keypoints " << SIFTKeypoints.size() << endl;
-
-    // Stage 3: Select the SIFT keypoints that can form 64x64 patch
-    for(int i = 0; i < SIFTKeypoints.size(); i++) 
+    vector<int> groundTruth;
+    int kpTag;
+    int _3DTag;
+    // Seek to the desired starting location
+    for (int s = 0; s < start; s++)
     {
-        if (SIFTKeypoints[i].pt.x < 31 || SIFTKeypoints[i].pt.x >= img.cols-31) {
-            continue;
+        groundTruthFile.ignore(numeric_limits<streamsize>::max(), groundTruthFile.widen('\n'));
+    }
+    for (int e = start; e < end; e++)
+    {
+        if (groundTruthFile.eof())
+        {
+            break;
+        }
+        groundTruthFile >> kpTag >> _3DTag;
+        groundTruth.push_back(kpTag);
+    }
+    groundTruthFile.close();
+    cout << "Loaded the Ground Truth Table" << endl;
+
+    // Open the output file
+    ofstream csvFile;
+    csvFile.open("T2S1_Result.csv");
+
+    // Calculate the Euclidean Distance
+    for (int a = start; a < end; a++)
+    {
+        for (int b = a + 1; b <= end; b++)
+        {
+            csvFile << a << "," << b << "," << (groundTruth[a - start] == groundTruth[b - start]) << "," << norm(listOfDescriptors[a], listOfDescriptors[b]) << endl; // norm default calculates Euclidean distance (L2)
         }
 
-        if (SIFTKeypoints[i].pt.y < 31 || SIFTKeypoints[i].pt.y >= img.rows-31) {
-            continue;
-        }
+        cout << "Calculated the Euclidean Distance from " << a << endl;
     }
+
+    cout << "Number of descriptor " << listOfDescriptors.size() << endl;
+
+    csvFile.close();
 }
 
 void CommandT2AS1()
