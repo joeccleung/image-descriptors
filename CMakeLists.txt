@@ -11,6 +11,9 @@ set(DistanceCalculator DistanceCalculator.cpp)
 set(BaseDescriptorGenerationPipeline BaseDescriptorGenerationPipeline.cpp)
 set(NSSDCalculation NSSDCalculation.cpp)
 set(NSSDPipeline NSSDPipeline.cpp)
+set(S1SquareGridBilinearWeightedPipeline S1SquareGridBilinearWeightedPipeline.cpp)
+set(T2GradientFieldPipeline T2GradientFieldPipeline.cpp)
+set(TSDescriptorGenerationPipeline TSDescriptorGenerationPipeline.cpp)
 
 if (WIN32)
 
@@ -33,7 +36,11 @@ ${DescriptorGenerator}
 ${DistanceCalculator}
 ${BaseDescriptorGenerationPipeline} 
 ${NSSDCalculation}
-${NSSDPipeline})
+${NSSDPipeline}
+${S1SquareGridBilinearWeightedPipeline}
+${T2GradientFieldPipeline}
+${TSDescriptorGenerationPipeline}
+)
 
 
 if (WIN32)

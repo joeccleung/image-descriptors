@@ -9,10 +9,15 @@
 #include <opencv2/xfeatures2d/nonfree.hpp> // For SIFT
 
 #include "DescriptorGenerator.h"
+#include "DistanceCalculator.h"
+
+#include "NSSDCalculation.h"
 #include "NSSDPipeline.h"
 
-#include "DistanceCalculator.h"
-#include "NSSDCalculation.h"
+#include "TSDescriptorGenerationPipeline.h"
+
+#include "T2GradientFieldPipeline.h"
+#include "S1SquareGridBilinearWeightedPipeline.h"
 
 using namespace std;
 using namespace cv;
@@ -25,10 +30,6 @@ const int COMMAND_SIFT_MATCHING = 2;
 const int COMMAND_NSSD_MATCHING = 3;
 const int COMMAND_T2A_S1_MATCHING = 4;
 
-const int T2_VF_P_X = 0;
-const int T2_VF_N_X = 1;
-const int T2_VF_P_Y = 2;
-const int T2_VF_N_Y = 3;
 const int T2_Bin_Length = 16;         // 16px x 16px in each bin
 const int T2_Bin_Count_Each_Side = 4; // 16 bins per patch
 
@@ -165,179 +166,19 @@ int ShowT2AS1Menu()
 
 /**
  * @brief Perform T2-S1 Descriptor Generation on selected patches
- * 
- * @param postNormalize To control whether the descriptors will perform post normalization to reduce the dynamic range
- * @param threshold If perform post normalization, set the maximum value for each fields on the descriptors. Range is [0..1]. Default is 1.
- */
-void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double threshold = 1)
+*/
+void CommandT2AS1GenerateDescriptorsFromPatches()
 {
-    int numberOfPatches = -1;
-    char shouldNormalizeCommand = ' ';
-    char printDebugCommand = ' ';
-    bool debug = false;
+    int starting = askUserStartingPatch();
+    int ending = askUserEndingPatch();
 
-    while (numberOfPatches < 0)
-    {
-        cout << "Please specify the last index of the patches: ";
-        cin >> numberOfPatches;
-    }
-
-    while (shouldNormalizeCommand == ' ')
-    {
-        cout << "Should I normalize the descriptor? (y/n): ";
-        cin >> shouldNormalizeCommand;
-    }
-
-    while (printDebugCommand == ' ')
-    {
-        cout << "Do you want intermediate output for debug? (y/n):";
-        cin >> printDebugCommand;
-    }
-
-    postNormalize = (shouldNormalizeCommand == 'y' || shouldNormalizeCommand == 'Y');
-    debug = (printDebugCommand == 'y' || printDebugCommand == 'Y');
-
-    // Output descriptors to file as XML
-    cv::FileStorage outFS("T2AS1.xml", FileStorage::WRITE);
-    cv::FileStorage debugFS("T2AS1_Debug.xml", FileStorage::WRITE);
-
-    stringstream inputFileName;
-    for (int i = 0; i <= numberOfPatches; i++)
-    {
-        stringstream().swap(inputFileName);
-        inputFileName << "patch/" << setfill('0') << setw(4) << i << ".png";
-
-        Mat img;
-        img = imread(inputFileName.str());
-        Mat vectorField(img.cols, img.rows, CV_16SC4, Vec4s(0, 0, 0, 0)); // Create Float64 4 channels for rectified gradient vectors
-
-        short value = 0;
-        // Horizontal Kernel [-1|0|1]
-        for (int r = 0; r < img.rows; r++)
-        {
-            // First column
-            // We clamp the L.H.S pixel with the center pixel
-            value = -1 * img.at<Vec3b>(r, 0)[0]; // Input is grayscale, RGB channels are the same
-            value += img.at<Vec3b>(r, 1)[0];
-
-            vectorField.at<Vec4s>(r, 0)[T2_VF_P_X] = abs(value) + value;
-            vectorField.at<Vec4s>(r, 0)[T2_VF_N_X] = abs(value) - value;
-
-            for (int c = 1; c < img.cols - 1; c++)
-            {
-                value = -1 * img.at<Vec3b>(r, c - 1)[0];
-                value += img.at<Vec3b>(r, c + 1)[0];
-
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_X] = abs(value) + value;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_X] = abs(value) - value;
-            }
-
-            // Last column
-            // We clamp the R.H.S pixel with the center pixel
-            value = -1 * img.at<Vec3b>(r, img.cols - 2)[0]; // Input is grayscale, RGB channels are the same
-            value += img.at<Vec3b>(r, img.cols - 1)[0];
-
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_P_X] = abs(value) + value;
-            vectorField.at<Vec4s>(r, img.cols - 1)[T2_VF_N_X] = abs(value) - value;
-        }
-
-        // Vectical Kernel [-1|0|1]
-        for (int c = 0; c < img.cols; c++)
-        {
-            // First row
-            // We clamp the top pixel with the center pixel
-            value = -1 * img.at<Vec3b>(0, c)[0]; // Input is grayscale, RGB channels are the same
-            value += img.at<Vec3b>(1, c)[0];
-
-            vectorField.at<Vec4s>(0, c)[T2_VF_P_Y] = abs(value) + value;
-            vectorField.at<Vec4s>(0, c)[T2_VF_N_Y] = abs(value) - value;
-
-            for (int r = 1; r < img.rows - 1; r++)
-            {
-                value = -1 * img.at<Vec3b>(r - 1, c)[0];
-                value += img.at<Vec3b>(r + 1, c)[0];
-
-                vectorField.at<Vec4s>(r, c)[T2_VF_P_Y] = abs(value) + value;
-                vectorField.at<Vec4s>(r, c)[T2_VF_N_Y] = abs(value) - value;
-            }
-
-            // Last row
-            // We clamp the bottom pixel with the center pixel
-            value = -1 * img.at<Vec3b>(img.rows - 2, c)[0]; // Input is grayscale, RGB channels are the same
-            value += img.at<Vec3b>(img.rows - 1, c)[0];
-
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_P_Y] = abs(value) + value;
-            vectorField.at<Vec4s>(img.rows - 1, c)[T2_VF_N_Y] = abs(value) - value;
-        }
-
-        // Vector field output
-        if (debug)
-        {
-            debugFS << "T" + to_string(i) << vectorField; // Matrix name must be prefix with non-numberic characters
-        }
-
-        // Binning
-        Mat bins(T2_Bin_Count_Each_Side, T2_Bin_Count_Each_Side, CV_64FC4, Vec4d(0, 0, 0, 0));
-
-        // Bilinear weighting
-        Mat bilinear = (Mat_<double>(4, 4) << 0.015625, 0.046875, 0.046875, 0.015625, 0.046875, 0.1406, 0.1406, 0.046875, 0.046875, 0.1406, 0.1406, 0.046875, 0.015625, 0.046875, 0.046875, 0.015625);
-
-        for (int y = 0; y < T2_Bin_Count_Each_Side; y++)
-        {
-            for (int x = 0; x < T2_Bin_Count_Each_Side; x++)
-            {
-                Vec4d total(0, 0, 0, 0);
-                for (int r = 0; r < T2_Bin_Length; r++)
-                {
-                    for (int c = 0; c < T2_Bin_Length; c++)
-                    {
-                        total += vectorField.at<Vec4s>(y * T2_Bin_Length + r, x * T2_Bin_Length + c);
-                    }
-                }
-
-                bins.at<Vec4d>(y, x) = total * bilinear.at<double>(y, x);
-            }
-        }
-
-        // Flatten the bins into 64 length descriptor
-        bins = bins.reshape(1, 1);
-
-        if (debug)
-        {
-            debugFS << "S" + to_string(i) << bins;
-        }
-
-        // Post Normalization
-        if (postNormalize)
-        {
-            // Convert to unit vector
-            normalize(bins, bins, 1, NORM_L2);
-
-            if (debug)
-            {
-                debugFS << "U" + to_string(i) << bins;
-            }
-
-            // Threshold
-            min(bins, threshold, bins);
-
-            if (debug)
-            {
-                debugFS << "K" + to_string(i) << bins;
-            }
-
-            // Convert to unit vector again
-            normalize(bins, bins, 1, NORM_L2);
-        }
-
-        // Output
-        outFS << "T2S1_" + to_string(i) << bins;
-
-        cout << "Processed " << inputFileName.str() << endl;
-    }
-
-    outFS.release();
-    debugFS.release();
+    DescriptorGenerator generator;
+    TSDescriptorGenerationPipeline tsPipeline;
+    T2GradientFieldPipeline t2Pipeline;
+    S1SquareGridBilinearWeightedPipeline s1Pipeline;
+    tsPipeline.setTBlock(&t2Pipeline);
+    tsPipeline.setSBlock(&s1Pipeline);
+    generator.Begin("T2S1.xml", "T2Sq_Debug.xml", starting, ending, &tsPipeline);
 }
 
 /**
@@ -485,7 +326,7 @@ void CommandT2AS1()
             return;
 
         case 1:
-            CommandT2AS1GenerateDescriptorsFromPatches(true, 0.154);
+            CommandT2AS1GenerateDescriptorsFromPatches();
             break;
 
         // case 2:
