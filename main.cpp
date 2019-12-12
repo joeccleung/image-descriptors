@@ -98,9 +98,33 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
     cout << endl;
 }
 
+int askUserStartingPatch()
+{
+    int starting = -1;
+
+    while (starting < 0)
+    {
+        cout << "Please provide the starting patch index: ";
+        cin >> starting;
+    }
+
+    return starting;
+}
+
+int askUserEndingPatch()
+{
+    int ending = -1;
+
+    while (ending < 0)
+    {
+        cout << "Please provide the ending patch index: ";
+        cin >> ending;
+    }
+
+    return ending;
+}
 void CommandSIFTMatching()
 {
-
 }
 
 void CommandNSSDMatching(int patchSize)
