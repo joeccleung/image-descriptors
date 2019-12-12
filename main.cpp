@@ -76,13 +76,13 @@ void CommandExtractImagePatchesFromDataset(int patchSize)
             {
                 int startCol = x * patchSize;
 
-                Mat patch(cv::Size(patchSize, patchSize), CV_8UC3);
+                Mat patch(cv::Size(patchSize, patchSize), CV_8U);
 
                 for (int r = 0; r < patchSize; r++)
                 {
                     for (int c = 0; c < patchSize; c++)
                     {
-                        patch.at<Vec3b>(r, c) = source.at<Vec3b>(startRow + r, startCol + c);
+                        patch.at<uchar>(r, c) = source.at<Vec3b>(startRow + r, startCol + c)[0]; // Since the image is a greyscale, we just need one channel
                     }
                 }
 
@@ -123,6 +123,7 @@ int askUserEndingPatch()
 
     return ending;
 }
+
 void CommandSIFTMatching()
 {
 }
