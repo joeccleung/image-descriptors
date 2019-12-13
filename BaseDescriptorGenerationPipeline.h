@@ -10,8 +10,8 @@ public:
     BaseDescriptorGenerationPipeline();
     virtual ~BaseDescriptorGenerationPipeline();
 
-    void setDebug(bool set);
-    void setNormalize(bool set);
+    virtual void setDebug(bool set);
+    virtual void setNormalize(bool set);
     void setStartEndPatchIndex(int start, int end);
 
     virtual cv::Mat compute(cv::Mat patch, int index, std::shared_ptr<cv::FileStorage> debugFile) = 0;
