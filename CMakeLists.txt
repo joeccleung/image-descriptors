@@ -4,7 +4,13 @@ set (CMAKE_CXX_STANDARD 17)
 
 project(imagedescriptors)
 
-set(SOURCE main.cpp)
+set(MAIN main.cpp)
+set(BaseDistanceCalculation BaseDistanceCalculation.cpp)
+set(DescriptorGenerator DescriptorGenerator.cpp)
+set(DistanceCalculator DistanceCalculator.cpp)
+set(BaseDescriptorGenerationPipeline BaseDescriptorGenerationPipeline.cpp)
+set(NSSDCalculation NSSDCalculation.cpp)
+set(NSSDPipeline NSSDPipeline.cpp)
 
 if (WIN32)
 
@@ -20,7 +26,14 @@ LINK_DIRECTORIES(/usr/local/lib)
 
 endif (UNIX)
 
-add_executable(${PROJECT_NAME} ${SOURCE})
+add_executable(${PROJECT_NAME} 
+${MAIN} 
+${BaseDistanceCalculation} 
+${DescriptorGenerator} 
+${DistanceCalculator}
+${BaseDescriptorGenerationPipeline} 
+${NSSDCalculation}
+${NSSDPipeline})
 
 
 if (WIN32)

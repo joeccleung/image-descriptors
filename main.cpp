@@ -8,6 +8,12 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp> // For SIFT
 
+#include "DescriptorGenerator.h"
+#include "NSSDPipeline.h"
+
+#include "DistanceCalculator.h"
+#include "NSSDCalculation.h"
+
 using namespace std;
 using namespace cv;
 
@@ -130,117 +136,16 @@ void CommandSIFTMatching()
 
 void CommandNSSDMatching(int patchSize)
 {
-    int starting = -1;
-    int ending = -1;
-    int numberOfPatches = 0;
+    int starting = askUserStartingPatch();
+    int ending = askUserEndingPatch();
 
-    while (starting < 0)
-    {
-        cout << "Please provide the starting patch ";
-        cin >> starting;
-    }
+    DescriptorGenerator generator;
+    NSSDPipeline nssdPipeline;
+    generator.Begin("NSSD.xml", "NSSD_Debug.xml", starting, ending, &nssdPipeline);
 
-    while (ending < 0)
-    {
-        cout << "Please provide the ending patch ";
-        cin >> ending;
-    }
-
-    FileStorage debugFile = FileStorage("NSSD_Debug.xml", FileStorage::WRITE);
-
-    stringstream inputFileName;
-    vector<Mat> patches;
-    // Stage 1: Load the patches
-    for (int i = starting; i <= ending; i++)
-    {
-        stringstream().swap(inputFileName);
-        inputFileName << "patch/" << setfill('0') << setw(4) << i << ".png";
-
-        patches.push_back(imread(inputFileName.str()));
-    }
-    cout << "Loaded " << patches.size() << " patches" << endl;
-
-    // TODO: Reduce the channel of the matrix to speed up the process
-
-    vector<Mat> normalized;
-    // Stage 2: Normalization
-    for (int i = 0; i < patches.size(); i++)
-    {
-        debugFile << "Original_" + to_string(i) << patches[i];
-
-        Mat normalizeMat(patches[i].size(), CV_64FC3);
-        normalize(patches[i], normalizeMat, 1, 0, NORM_L2, CV_64FC3);
-        normalized.push_back(normalizeMat);
-
-        debugFile << "Normalize_" + to_string(i) << normalized[i];
-
-        // Stage 3: Threshold to reduce dynamic range of the image
-        min(normalized[i], 0.154, normalized[i]);
-
-        debugFile << "K_" + to_string(i) << normalized[i];
-
-        // Stage 4: Normalization again
-        normalize(normalized[i], normalized[i], 1, NORM_L2);
-
-        debugFile << "N_" + to_string(i) << normalized[i];
-    }
-    cout << "Normalization complete " << endl;
-
-    // Output prep
-    ofstream outputFile;
-    outputFile.open("NSSD_Result.csv");
-
-    // Stage 6: Load Ground Truth
-    ifstream groundTruthFile;
-    groundTruthFile.open("GroundTruth.txt");
-    if (!groundTruthFile.is_open())
-    {
-        groundTruthFile.close();
-        cout << "Cannot find GroundTruth.txt" << endl;
-        return;
-    }
-    vector<int> groundTruth;
-    int kpTag;
-    int _3DTag;
-    // Seek to the desired starting location
-    for (int s = 0; s < starting; s++)
-    {
-        groundTruthFile.ignore(numeric_limits<streamsize>::max(), groundTruthFile.widen('\n'));
-    }
-    for (int e = starting; e < ending; e++)
-    {
-        if (groundTruthFile.eof())
-        {
-            break;
-        }
-        groundTruthFile >> kpTag >> _3DTag;
-        groundTruth.push_back(kpTag);
-    }
-    groundTruthFile.close();
-    cout << "Loaded the Ground Truth Table" << endl;
-
-    // Stage 5: SSD
-    for (int a = 0; a < normalized.size() - 1; a++)
-    {
-        for (int b = a + 1; b < normalized.size(); b++)
-        {
-            int ssd = 0;
-            for (int r = 0; r < patchSize; r++)
-            {
-                for (int c = 0; c < patchSize; c++)
-                {
-                    int diff = normalized[a].at<Vec3b>(r, c)[0] - normalized[b].at<Vec3b>(r, c)[0]; // Since we are using greyscale image, we only need to compute one color channel
-                    ssd += diff * diff;
-                }
-            }
-
-            outputFile << a + starting << "," << b + starting << "," << (groundTruth[a] == groundTruth[b]) << "," << ssd << endl;
-            cout << "SSD between " << a + starting << " and " << b + starting << " = " << ssd << endl;
-        }
-    }
-
-    outputFile.close();
-    debugFile.release();
+    DistanceCalculator calculator;
+    NSSDCalculation nssdCalculation;
+    calculator.calculate("NSSD.xml", "NSSD_Result.xml", starting, ending, &nssdCalculation);
 }
 
 int ShowT2AS1Menu()
@@ -277,7 +182,8 @@ void CommandT2AS1GenerateDescriptorsFromPatches(bool postNormalize, double thres
         cin >> numberOfPatches;
     }
 
-    while (shouldNormalizeCommand == ' ') {
+    while (shouldNormalizeCommand == ' ')
+    {
         cout << "Should I normalize the descriptor? (y/n): ";
         cin >> shouldNormalizeCommand;
     }
